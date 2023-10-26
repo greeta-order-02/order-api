@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.greeta.order.exceptionhandler.StreamsProcessorCustomErrorHandler;
 import net.greeta.order.topology.OrdersTopology;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsConfig;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class OrdersStreamsConfiguration {
     @Autowired
     KafkaProperties kafkaProperties;
 
+    @Value("${spring.kafka.streams.bootstrap-servers}")
+    String bootstrapServers;
+
     @Autowired
     KafkaTemplate<String, String> kafkaTemplate;
 
@@ -39,6 +43,7 @@ public class OrdersStreamsConfiguration {
 
         streamProperties.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, RecoveringDeserializationExceptionHandler.class);
         streamProperties.put(RecoveringDeserializationExceptionHandler.KSTREAM_DESERIALIZATION_RECOVERER, consumerRecordRecoverer);
+        streamProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         //streamProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         return new KafkaStreamsConfiguration(streamProperties);
