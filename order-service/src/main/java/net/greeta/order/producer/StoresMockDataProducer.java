@@ -8,6 +8,7 @@ import net.greeta.order.domain.Address;
 import net.greeta.order.domain.Store;
 import net.greeta.order.topology.OrdersTopology;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.KafkaProducer;
 
 import java.util.List;
 
@@ -17,10 +18,10 @@ import static net.greeta.order.producer.ProducerUtil.publishMessageSync;
 public class StoresMockDataProducer {
 
     public static void main(String[] args) {
-        main();
+        main(ProducerUtil.staticProducer);
     }
 
-    public static void main() {
+    public static void main(KafkaProducer<String, String> producer) {
         ObjectMapper objectMapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
@@ -44,7 +45,7 @@ public class StoresMockDataProducer {
                 .forEach(store -> {
                     try {
                         var storeJSON = objectMapper.writeValueAsString(store);
-                        var recordMetaData = publishMessageSync(OrdersTopology.STORES, store.locationId(), storeJSON);
+                        var recordMetaData = publishMessageSync(producer, OrdersTopology.STORES, store.locationId(), storeJSON);
                         log.info("Published the store message : {} ", recordMetaData);
                     } catch (JsonProcessingException e) {
                         log.error("JsonProcessingException : {} ", e.getMessage(), e);

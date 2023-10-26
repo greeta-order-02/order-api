@@ -14,12 +14,12 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class ProducerUtil {
 
-    static KafkaProducer<String, String> producer = new KafkaProducer<String, String>(producerProps());
+    public static KafkaProducer<String, String> staticProducer = new KafkaProducer<String, String>(producerProps());
 
-    public static Map<String, Object> producerProps(){
+    private static Map<String, Object> producerProps(){
 
         Map<String,Object> propsMap = new HashMap<>();
-        propsMap.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "bitnami-kafka:9092");
+        propsMap.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         propsMap.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         propsMap.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         return propsMap;
@@ -27,7 +27,7 @@ public class ProducerUtil {
     }
 
 
-    public static RecordMetadata publishMessageSync(String topicName, String key, String message ){
+    public static RecordMetadata publishMessageSync(KafkaProducer<String, String> producer, String topicName, String key, String message ){
 
         ProducerRecord<String,String> producerRecord = new ProducerRecord<>(topicName, key, message);
         RecordMetadata recordMetadata=null;

@@ -4,8 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.greeta.order.exceptionhandler.StreamsProcessorCustomErrorHandler;
 import net.greeta.order.topology.OrdersTopology;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,13 +16,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 import org.springframework.kafka.config.KafkaStreamsConfiguration;
-import org.springframework.kafka.config.StreamsBuilderFactoryBean;
 import org.springframework.kafka.config.StreamsBuilderFactoryBeanConfigurer;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.streams.RecoveringDeserializationExceptionHandler;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 @Configuration
@@ -30,11 +34,11 @@ public class OrdersStreamsConfiguration {
     @Autowired
     KafkaProperties kafkaProperties;
 
-    @Value("${spring.kafka.streams.bootstrap-servers}")
-    String bootstrapServers;
-
     @Autowired
     KafkaTemplate<String, String> kafkaTemplate;
+
+    @Value("${spring.kafka.streams.bootstrap-servers}")
+    String bootstrapServers;
 
     @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
     public KafkaStreamsConfiguration kStreamConfig() {
@@ -43,7 +47,6 @@ public class OrdersStreamsConfiguration {
 
         streamProperties.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, RecoveringDeserializationExceptionHandler.class);
         streamProperties.put(RecoveringDeserializationExceptionHandler.KSTREAM_DESERIALIZATION_RECOVERER, consumerRecordRecoverer);
-        streamProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         //streamProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         return new KafkaStreamsConfiguration(streamProperties);
@@ -86,6 +89,20 @@ public class OrdersStreamsConfiguration {
                 .partitions(2)
                 .replicas(1)
                 .build();
+
+    }
+
+    @Bean
+    public KafkaProducer<String, String> kafkaProducer() {
+        return new KafkaProducer<String, String>(producerProps());
+    }
+
+    private Map<String, Object> producerProps(){
+        Map<String,Object> propsMap = new HashMap<>();
+        propsMap.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        propsMap.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        propsMap.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        return propsMap;
 
     }
 }

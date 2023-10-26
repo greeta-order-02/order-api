@@ -6,6 +6,7 @@ import net.greeta.order.domain.OrderRevenueDTO;
 import net.greeta.order.producer.OrdersMockDataProducer;
 import net.greeta.order.producer.StoresMockDataProducer;
 import net.greeta.order.service.OrderStreamService;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +25,10 @@ public class OrderStreamsController {
 
     private OrderStreamService orderStreamService;
 
-    public OrderStreamsController(OrderStreamService orderStreamService) {
+    private KafkaProducer<String, String> producer;
+
+    public OrderStreamsController(KafkaProducer<String, String> producer, OrderStreamService orderStreamService) {
+        this.producer = producer;
         this.orderStreamService = orderStreamService;
     }
 
@@ -70,8 +74,8 @@ public class OrderStreamsController {
 
     @PostMapping("/init-mock")
     public ResponseEntity<Void> initMock() {
-        StoresMockDataProducer.main();
-        OrdersMockDataProducer.main();
+        StoresMockDataProducer.main(producer);
+        OrdersMockDataProducer.main(producer);
         return ResponseEntity.ok().build();
     }
 

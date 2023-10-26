@@ -9,6 +9,7 @@ import net.greeta.order.domain.OrderLineItem;
 import net.greeta.order.domain.OrderType;
 import net.greeta.order.topology.OrdersTopology;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.KafkaProducer;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,16 +23,16 @@ import static java.lang.Thread.sleep;
 public class OrdersMockDataProducer {
 
     public static void main(String[] args) throws InterruptedException {
-        main();
+        main(ProducerUtil.staticProducer);
     }
 
-    public static void main() {
+    public static void main(KafkaProducer<String, String> producer) {
         ObjectMapper objectMapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 
 
-        publishOrders(objectMapper, buildOrders());
+        publishOrders(producer, objectMapper, buildOrders());
         //publishBulkOrders(objectMapper);
 
         /**
@@ -42,7 +43,7 @@ public class OrdersMockDataProducer {
          *      - This should allow the aggregation to be added to the window before
          *
          */
-        publishOrdersToTestGrace(objectMapper, buildOrdersToTestGrace());
+        publishOrdersToTestGrace(producer, objectMapper, buildOrdersToTestGrace());
 
 
         //Future and Old Records
@@ -52,7 +53,7 @@ public class OrdersMockDataProducer {
 
     }
 
-    private static void publishFutureRecords(ObjectMapper objectMapper) {
+    private static void publishFutureRecords(KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
         var localDateTime = LocalDateTime.now().plusDays(1);
 
         var newOrders = buildOrders()
@@ -65,10 +66,10 @@ public class OrdersMockDataProducer {
                                 order.orderLineItems(),
                                 localDateTime))
                 .toList();
-        publishOrders(objectMapper, newOrders);
+        publishOrders(producer, objectMapper, newOrders);
     }
 
-    private static void publishExpiredRecords(ObjectMapper objectMapper) {
+    private static void publishExpiredRecords(KafkaProducer<String, String> producer, ObjectMapper objectMapper) {
 
         var localDateTime = LocalDateTime.now().minusDays(1);
 
@@ -82,11 +83,11 @@ public class OrdersMockDataProducer {
                                 order.orderLineItems(),
                                 localDateTime))
                 .toList();
-        publishOrders(objectMapper, newOrders);
+        publishOrders(producer, objectMapper, newOrders);
 
     }
 
-    private static void publishOrdersForGracePeriod(ObjectMapper objectMapper, List<Order> orders) {
+    private static void publishOrdersForGracePeriod(KafkaProducer<String, String> producer, ObjectMapper objectMapper, List<Order> orders) {
 
         var localTime = LocalDateTime.now().toLocalTime();
         var modifiedTime = LocalTime.of(localTime.getHour(), localTime.getMinute(), 18);
@@ -123,19 +124,19 @@ public class OrdersMockDataProducer {
                 .filter(order -> order.orderType().equals(OrderType.GENERAL))
                 .toList();
 
-        publishOrders(objectMapper, generalOrders);
+        publishOrders(producer, objectMapper, generalOrders);
 
         //orders with the timestamp as 18th second
-        publishRecordsWithDelay(generalOrdersWithCustomTime, localDateTime, objectMapper, 18);
+        publishRecordsWithDelay(producer, generalOrdersWithCustomTime, localDateTime, objectMapper, 18);
 
     }
 
-    private static void publishRecordsWithDelay(List<Order> newOrders, LocalDateTime localDateTime, ObjectMapper objectMapper) {
+    private static void publishRecordsWithDelay(KafkaProducer<String, String> producer, List<Order> newOrders, LocalDateTime localDateTime, ObjectMapper objectMapper) {
 
-        publishOrders(objectMapper, newOrders);
+        publishOrders(producer, objectMapper, newOrders);
     }
 
-    private static void publishRecordsWithDelay(List<Order> newOrders, LocalDateTime localDateTime, ObjectMapper objectMapper, int timeToPublish) {
+    private static void publishRecordsWithDelay(KafkaProducer<String, String> producer, List<Order> newOrders, LocalDateTime localDateTime, ObjectMapper objectMapper, int timeToPublish) {
 
         var flag = true;
         while (flag) {
@@ -143,7 +144,7 @@ public class OrdersMockDataProducer {
             if (dateTime.toLocalTime().getMinute() == localDateTime.getMinute()
                     && dateTime.toLocalTime().getSecond() == timeToPublish) {
                 System.out.printf("Publishing the record with delay ");
-                publishOrders(objectMapper, newOrders);
+                publishOrders(producer, objectMapper, newOrders);
                 flag = false;
             } else {
                 System.out.println(" Current Time is  and the record will be published at the 16th second: " + dateTime);
@@ -299,24 +300,24 @@ public class OrdersMockDataProducer {
         );
     }
 
-    private static void publishBulkOrders(ObjectMapper objectMapper) throws InterruptedException {
+    private static void publishBulkOrders(KafkaProducer<String, String> producer, ObjectMapper objectMapper) throws InterruptedException {
 
         int count = 0;
         while (count < 100) {
             var orders = buildOrders();
-            publishOrders(objectMapper, orders);
+            publishOrders(producer, objectMapper, orders);
             sleep(1000);
             count++;
         }
     }
 
-    private static void publishOrdersToTestGrace(ObjectMapper objectMapper, List<Order> orders) {
+    private static void publishOrdersToTestGrace(KafkaProducer<String, String> producer, ObjectMapper objectMapper, List<Order> orders) {
 
         orders
                 .forEach(order -> {
                     try {
                         var ordersJSON = objectMapper.writeValueAsString(order);
-                        var recordMetaData = publishMessageSync(OrdersTopology.ORDERS, order.orderId() + "", ordersJSON);
+                        var recordMetaData = publishMessageSync(producer, OrdersTopology.ORDERS, order.orderId() + "", ordersJSON);
                         log.info("Published the order message : {} ", recordMetaData);
                     } catch (JsonProcessingException e) {
                         log.error("JsonProcessingException : {} ", e.getMessage(), e);
@@ -328,13 +329,13 @@ public class OrdersMockDataProducer {
                 });
     }
 
-    private static void publishOrders(ObjectMapper objectMapper, List<Order> orders) {
+    private static void publishOrders(KafkaProducer<String, String> producer, ObjectMapper objectMapper, List<Order> orders) {
 
         orders
                 .forEach(order -> {
                     try {
                         var ordersJSON = objectMapper.writeValueAsString(order);
-                        var recordMetaData = publishMessageSync(OrdersTopology.ORDERS, order.orderId() + "", ordersJSON);
+                        var recordMetaData = publishMessageSync(producer, OrdersTopology.ORDERS, order.orderId() + "", ordersJSON);
                         log.info("Published the order message : {} ", recordMetaData);
                     } catch (JsonProcessingException e) {
                         log.error("JsonProcessingException : {} ", e.getMessage(), e);
