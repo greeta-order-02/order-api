@@ -27,9 +27,8 @@
     </properties>
 
     <modules>
-        <module>order-service</module>
         <module>order-domain</module>
-        <module>order-streams</module>
+        <module>order-service</module>
         <module>erp-service</module>
         <module>gateway-service</module>
     </modules>

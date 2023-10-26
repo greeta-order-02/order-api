@@ -3,6 +3,7 @@ package net.greeta.order.mapper;
 import net.greeta.order.model.Order;
 import net.greeta.order.rest.dto.CreateOrderRequest;
 import net.greeta.order.rest.dto.OrderDto;
+import net.greeta.order.rest.dto.UserDto;
 import org.springframework.stereotype.Service;
 
 @Service

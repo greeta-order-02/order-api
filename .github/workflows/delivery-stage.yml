@@ -7,7 +7,7 @@ on:
 concurrency: acceptance
 
 env:
-  OWNER: greeta-order-01
+  OWNER: greeta-order-02
   REGISTRY: ghcr.io
   APP_REPO: order-api
   DEPLOY_REPO: order-infra

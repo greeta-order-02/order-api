@@ -1,6 +1,8 @@
 spring:
   application:
     name: order
+  main:
+    allow-bean-definition-overriding: true
   output:
     ansi:
       enabled: ALWAYS
@@ -19,6 +21,26 @@ spring:
         jwt:
           issuer-uri: ${spring.keycloak.server-url}/realms/order-realm
           jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
+
+  kafka:
+    consumer:
+      auto-offset-reset: latest
+    streams:
+      bootstrap-servers: localhost:9092
+      application-id: orders-kafka-streams5
+
+    properties:
+      default:
+        key:
+          serde: 'org.apache.kafka.common.serialization.Serdes$StringSerde'
+        value:
+          serde: 'org.apache.kafka.common.serialization.Serdes$StringSerde'
+        deserialization:
+          exception:
+            handler: 'org.apache.kafka.streams.errors.LogAndContinueExceptionHandler'
+        serialization:
+          exception:
+            handler: 'net.greeta.order.exceptionhandler.StreamsSerializationExceptionHandler'
 
 logging:
   pattern:

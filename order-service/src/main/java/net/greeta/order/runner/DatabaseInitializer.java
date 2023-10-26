@@ -1,7 +1,10 @@
 package net.greeta.order.runner;
 
 import net.greeta.order.model.User;
+import net.greeta.order.producer.OrdersMockDataProducer;
+import net.greeta.order.producer.StoresMockDataProducer;
 import net.greeta.order.security.WebSecurityConfig;
+import net.greeta.order.service.OrderStreamService;
 import net.greeta.order.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +21,8 @@ import java.util.List;
 public class DatabaseInitializer implements CommandLineRunner {
 
     private final UserService userService;
+
+    private final OrderStreamService orderStreamService;
 
     @Override
     public void run(String... args) {
